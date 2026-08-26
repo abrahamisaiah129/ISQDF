@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+/* Register Poppins within Tailwind v4's Theme Engine */
+@theme {
+  --font-poppins: "Poppins", sans-serif;
+}
+
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes carousel-slide-in {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes carousel-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stats-card-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  8%,
+  18% {
+    transform: translateY(-4px) scale(1.025);
+  }
+
+  26% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes community-card-center {
+  from {
+    opacity: 0;
+    transform: translateX(32px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1.05);
+  }
+}
+
+@keyframes community-card-side {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.92);
+  }
+
+  to {
+    opacity: 0.7;
+    transform: translateX(0) scale(0.95);
+  }
+}
+
+.community-card-center {
+  animation: community-card-center 650ms var(--ease-out-expo) both;
+}
+
+.community-card-side {
+  animation: community-card-side 650ms var(--ease-out-expo) both;
+}
+
+.stats-card-pulse {
+  animation: stats-card-pulse 4.8s var(--ease-out-expo) infinite;
+  transition: transform 300ms var(--ease-out-expo), box-shadow 300ms ease;
+}
+
+.stats-card-pulse:hover {
+  animation-play-state: paused;
+  transform: translateY(-5px) scale(1.04);
+}
+
+@keyframes donate-button-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.35);
+  }
+
+  50% {
+    transform: scale(1.035);
+    box-shadow: 0 0 0 7px rgba(220, 38, 38, 0);
+  }
+}
+
+.donate-button-pulse {
+  animation: donate-button-pulse 2.8s var(--ease-out-expo) infinite;
+}
+
+.donate-button-pulse:hover,
+.donate-button-pulse:focus-visible {
+  animation-play-state: paused;
+}
+
+.ease-site {
+  transition-timing-function: var(--ease-out-expo);
+}
+
+.carousel-slide-active {
+  animation: carousel-slide-in 700ms var(--ease-out-expo) both;
+}
+
+.carousel-stagger-item {
+  animation: carousel-stagger-in 550ms var(--ease-out-expo) both;
+}
+
+.carousel-stagger-1 {
+  animation-delay: 100ms;
+}
+
+.carousel-stagger-2 {
+  animation-delay: 200ms;
+}
+
+.carousel-stagger-3 {
+  animation-delay: 300ms;
+}
+
+.carousel-stagger-4 {
+  animation-delay: 400ms;
+}
+
+.carousel-glass-card {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.24) 65%, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 14px 32px rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-slide-active,
+  .carousel-stagger-item,
+  .stats-card-pulse,
+  .donate-button-pulse,
+  .community-card-center,
+  .community-card-side {
+    animation: none;
+  }
+}
+
+/* Base resets and global styling defaults */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  html,
+  body,
+  button,
+  input,
+  textarea,
+  select {
+    font-family: var(--font-poppins);
+  }
+
+  body {
+    font-weight: 400;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+  }
+}
+@layer utilities {
+  @keyframes marquee-left {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-33.3333%); }
+  }
+  @keyframes marquee-right {
+    from { transform: translateX(-33.3333%); }
+    to   { transform: translateX(0); }
+  }
+}
+html {
+  scroll-behavior: smooth;
+}
+
+section {
+  scroll-margin-top: 80px;
+}
+
