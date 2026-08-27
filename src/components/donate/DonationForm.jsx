@@ -137,8 +137,8 @@ export default function DonationForm({
           >
             Make another donation
           </Button>
-          <Button as="a" href="/story" variant="secondary">
-            Read our story
+          <Button as="a" href="/founder" variant="secondary">
+            Meet our founder
           </Button>
         </div>
       </div>

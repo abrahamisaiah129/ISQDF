@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import Button from '../ui/Button';
 import DynamicIcon from '../ui/Dynamicicon';
 
@@ -9,6 +9,11 @@ export default function Carousel({ data = [], slides = data, autoPlay = true, in
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [controlsVisible, setControlsVisible] = useState(false);
   const [loadedImages, setLoadedImages] = useState(() => new Set());
+
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const mouseStartX = useRef(null);
+  const isDragging = useRef(false);
 
   const goTo = useCallback((index) => {
     if (!items.length) return;
@@ -26,33 +31,90 @@ export default function Carousel({ data = [], slides = data, autoPlay = true, in
     return () => clearInterval(timer);
   }, [next, isPlaying, interval, items.length]);
 
+  // Touch Swipe Handlers (Mobile & Tablets)
+  const handleTouchStart = (e) => {
+    setControlsVisible(true);
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+    const diffY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Trigger swipe if horizontal displacement is greater than vertical and exceeds threshold
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX < 0) {
+        next();
+      } else {
+        prev();
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  // Mouse Drag Handlers (Desktop Swiping)
+  const handleMouseDown = (e) => {
+    // Only drag with main mouse button, not right click or clicking buttons/links
+    if (e.button !== 0 || e.target.closest('button') || e.target.closest('a')) return;
+    mouseStartX.current = e.clientX;
+    isDragging.current = true;
+  };
+
+  const handleMouseUp = (e) => {
+    if (!isDragging.current || mouseStartX.current === null) return;
+    const diffX = e.clientX - mouseStartX.current;
+
+    if (Math.abs(diffX) > 40) {
+      if (diffX < 0) {
+        next();
+      } else {
+        prev();
+      }
+    }
+
+    mouseStartX.current = null;
+    isDragging.current = false;
+  };
+
   if (!items.length) {
     return null;
   }
 
   return (
     <div
-      className="group relative w-full h-[400px] md:h-[510px] lg:h-[560px] overflow-hidden bg-zinc-900"
+      className="group relative w-full h-[400px] md:h-[510px] lg:h-[560px] overflow-hidden bg-zinc-900 select-none cursor-grab active:cursor-grabbing"
       onMouseEnter={() => setControlsVisible(true)}
-      onMouseLeave={() => setControlsVisible(false)}
-      onTouchStart={() => setControlsVisible(true)}
+      onMouseLeave={() => {
+        setControlsVisible(false);
+        isDragging.current = false;
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
     >
       {items.map((slide, index) => (
         <div
           key={index}
           className={`absolute inset-0 ${
-            index === current ? 'carousel-slide-active z-10' : 'opacity-0 z-0'
+            index === current ? 'carousel-slide-active z-10' : 'opacity-0 z-0 pointer-events-none'
           }`}
         >
           <img
             src={slide.image}
             alt={slide.title}
             onLoad={() => setLoadedImages((loaded) => new Set(loaded).add(index))}
-            className={`h-full w-full object-cover brightness-[0.88] contrast-[1.05] saturate-[1.08] transition-all duration-700 ease-site ${
+            className={`h-full w-full object-cover brightness-[0.88] contrast-[1.05] saturate-[1.08] transition-all duration-700 ease-site pointer-events-none ${
               loadedImages.has(index)
                 ? 'scale-100 opacity-100 blur-0'
                 : 'scale-105 opacity-0 blur-xl'
             }`}
+            draggable={false}
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/5" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-black/35 to-transparent" />
@@ -84,54 +146,35 @@ export default function Carousel({ data = [], slides = data, autoPlay = true, in
         </div>
       ))}
 
-      {/* Subtle Navigation Arrows */}
+      {/* Navigation Arrows (Visible only on desktop and mid/large tablets) */}
       <button
         onClick={prev}
-        className={`absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/25 text-white/80 shadow-lg shadow-black/20 backdrop-blur-md transition-all duration-300 ease-site hover:scale-110 hover:border-white hover:bg-white hover:text-red-600 active:scale-95 ${controlsVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`absolute left-4 top-1/2 z-20 hidden md:flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/25 text-white/80 shadow-lg shadow-black/20 backdrop-blur-md transition-all duration-300 ease-site hover:scale-110 hover:border-white hover:bg-white hover:text-red-600 active:scale-95 cursor-pointer ${controlsVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
         aria-label="Previous slide"
       >
         <ChevronLeft size={36} strokeWidth={1} />
       </button>
       <button
         onClick={next}
-        className={`absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/25 text-white/80 shadow-lg shadow-black/20 backdrop-blur-md transition-all duration-300 ease-site hover:scale-110 hover:border-white hover:bg-white hover:text-red-600 active:scale-95 ${controlsVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`absolute right-4 top-1/2 z-20 hidden md:flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-black/25 text-white/80 shadow-lg shadow-black/20 backdrop-blur-md transition-all duration-300 ease-site hover:scale-110 hover:border-white hover:bg-white hover:text-red-600 active:scale-95 cursor-pointer ${controlsVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
         aria-label="Next slide"
       >
         <ChevronRight size={36} strokeWidth={1} />
       </button>
 
-      {/* Navigation Indicators & Pause — red pill, glass backdrop */}
-      <div className={`absolute right-4 bottom-4 z-20 flex items-center gap-4 rounded-full border border-white/35 bg-black/25 px-5 py-2.5 shadow-lg shadow-black/20 backdrop-blur-md transition-all duration-300 ease-site sm:right-8 md:right-16 lg:right-24 ${controlsVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}>
-        <button
-          onClick={togglePlay}
-          className="flex items-center justify-center w-6 h-6 opacity-80 hover:opacity-100 transition-opacity"
-          aria-label={isPlaying ? "Pause" : "Play"}
-        >
-          {isPlaying ? (
-            <div className="flex gap-[3px]">
-              <div className="w-[3px] h-3.5 bg-red-500 rounded-sm"></div>
-              <div className="w-[3px] h-3.5 bg-red-500 rounded-sm"></div>
-            </div>
-          ) : (
-            <div className="w-0 h-0 border-t-[7px] border-t-transparent border-l-[10px] border-l-red-500 border-b-[7px] border-b-transparent ml-1"></div>
-          )}
-        </button>
-
-        <div className="flex items-center gap-3">
-          {items.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goTo(index)}
-              className={`transition-all duration-300 ${
-                index === current
-                  ? 'w-10 h-[2px] bg-red-500'
-                  : 'w-1.5 h-1.5 rounded-full bg-red-500/40 hover:bg-red-500/80'
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Autoplay Pause / Play Toggle (Bottom Right of Banner) */}
+      <button
+        onClick={togglePlay}
+        className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 md:right-8 z-20 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-white/35 bg-black/40 text-white shadow-lg shadow-black/25 backdrop-blur-md transition-all duration-300 ease-site hover:scale-110 hover:border-white hover:bg-black/60 active:scale-95 cursor-pointer"
+        aria-label={isPlaying ? "Pause banner slideshow" : "Play banner slideshow"}
+        title={isPlaying ? "Pause" : "Play"}
+      >
+        {isPlaying ? (
+          <Pause size={15} className="text-red-500 fill-red-500 sm:size-4" />
+        ) : (
+          <Play size={15} className="text-red-500 fill-red-500 ml-0.5 sm:size-4" />
+        )}
+      </button>
     </div>
   );
 }

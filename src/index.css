@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* Register Poppins within Tailwind v4's Theme Engine */
+/* Register Poppins as the primary font family in Tailwind v4 */
 @theme {
-  --font-poppins: "Poppins", sans-serif;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-poppins: "Poppins", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -34,6 +35,7 @@
 }
 
 @keyframes stats-card-pulse {
+
   0%,
   100% {
     transform: translateY(0) scale(1);
@@ -92,6 +94,7 @@
 }
 
 @keyframes donate-button-pulse {
+
   0%,
   100% {
     transform: scale(1);
@@ -147,6 +150,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .carousel-slide-active,
   .carousel-stagger-item,
   .stats-card-pulse,
@@ -157,42 +161,77 @@
   }
 }
 
-/* Base resets and global styling defaults */
+/* Base typography resets and global styling defaults */
 @layer base {
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
-  html,
-  body,
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.65;
+    color: #374151; /* gray-700 */
+    background-color: #ffffff;
+  }
+
   button,
   input,
   textarea,
   select {
-    font-family: var(--font-poppins);
-  }
-
-  body {
-    font-weight: 400;
+    font-family: inherit;
   }
 
   h1,
   h2,
-  h3 {
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
     font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #111827; /* gray-900 */
+    line-height: 1.25;
+  }
+
+  p {
+    line-height: 1.7;
   }
 }
+
 @layer utilities {
   @keyframes marquee-left {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-33.3333%); }
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(-33.3333%);
+    }
   }
+
   @keyframes marquee-right {
-    from { transform: translateX(-33.3333%); }
-    to   { transform: translateX(0); }
+    from {
+      transform: translateX(-33.3333%);
+    }
+
+    to {
+      transform: translateX(0);
+    }
   }
 }
+
 html {
   scroll-behavior: smooth;
 }
@@ -200,4 +239,3 @@ html {
 section {
   scroll-margin-top: 80px;
 }
-

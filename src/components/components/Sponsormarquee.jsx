@@ -1,31 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 
 /**
- * SponsorMarquee — reusable infinite-scrolling sponsor/partner logo strip.
- *
- * Usage:
- * <SponsorMarquee
- *   sponsors={[
- *     { name: 'Acme Sports', logo: acmeLogo, href: 'https://acme.com' },
- *     { name: 'Local Bank', logo: bankLogo },
- *   ]}
- *   speed="normal"     // "slow" | "normal" | "fast"
- *   direction="left"   // "left" | "right"
- *   grayscale={true}   // logos render gray, full color on hover
- *   ctaText="Become a Sponsor"   // omit to hide CTA entirely
- *   ctaHref="/partner-with-us"
- * />
- *
- * Requires this in your global CSS (e.g. index.css), inside @layer utilities:
- *
- * @keyframes marquee-left {
- *   from { transform: translateX(0); }
- *   to   { transform: translateX(-33.3333%); }
- * }
- * @keyframes marquee-right {
- *   from { transform: translateX(-33.3333%); }
- *   to   { transform: translateX(0); }
- * }
+ * SponsorMarquee — interactive sponsor/partner logo strip.
+ * Features:
+ * - Direct touch & drag swiping (users can swipe with their hand to see logos).
+ * - Automatic seamless scrolling when idle.
+ * - Pauses on touch or hover so user stays in full control.
  */
 export default function SponsorMarquee({
   sponsors = [],
@@ -35,21 +15,82 @@ export default function SponsorMarquee({
   title = 'Our Sponsors & Partners',
   className = '',
 }) {
-  // Tripled (not doubled) — with a small sponsor list, 2x can still be
-  // narrower than the viewport on wide screens, causing a visible gap/jump
-  // right at the loop seam. 3x guarantees the track is always wider than
-  // any reasonable viewport, so the -33.333% loop point is always seamless.
-  const looped = useMemo(() => [...sponsors, ...sponsors, ...sponsors], [sponsors]);
+  const scrollRef = useRef(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const isInteracting = useRef(false);
+
+  // Repeat items for seamless looping
+  const looped = useMemo(
+    () => [...sponsors, ...sponsors, ...sponsors, ...sponsors],
+    [sponsors]
+  );
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !sponsors.length) return;
+
+    let animId;
+    const speedPx = speed === 'fast' ? 1.0 : speed === 'slow' ? 0.35 : 0.6;
+
+    const step = () => {
+      if (!isInteracting.current && el) {
+        if (direction === 'left') {
+          el.scrollLeft += speedPx;
+          if (el.scrollLeft >= el.scrollWidth / 2) {
+            el.scrollLeft -= el.scrollWidth / 4;
+          }
+        } else {
+          el.scrollLeft -= speedPx;
+          if (el.scrollLeft <= 0) {
+            el.scrollLeft += el.scrollWidth / 4;
+          }
+        }
+      }
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [sponsors.length, speed, direction]);
 
   if (!sponsors.length) return null;
 
-  const durations = {
-    slow: '50s',
-    normal: '32s',
-    fast: '18s',
+  // Touch Handlers (Mobile / Tablets)
+  const handleTouchStart = () => {
+    isInteracting.current = true;
   };
 
-  const animationName = direction === 'right' ? 'marquee-right' : 'marquee-left';
+  const handleTouchEnd = () => {
+    setTimeout(() => {
+      isInteracting.current = false;
+    }, 1500);
+  };
+
+  // Mouse Drag Handlers (Desktop)
+  const handleMouseDown = (e) => {
+    if (!scrollRef.current || e.button !== 0) return;
+    isDragging.current = true;
+    isInteracting.current = true;
+    startX.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeftStart.current = scrollRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    setTimeout(() => {
+      isInteracting.current = false;
+    }, 1500);
+  };
 
   return (
     <section
@@ -62,21 +103,35 @@ export default function SponsorMarquee({
         </h2>
       )}
 
-      {/* Fade mask on edges so logos don't hard-cut at the viewport boundary */}
+      {/* Fade mask on edges with interactive scrollable track */}
       <div
-        className="group relative w-full"
+        className="group relative w-full select-none cursor-grab active:cursor-grabbing"
         style={{
           maskImage:
             'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
           WebkitMaskImage:
             'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
         }}
+        onMouseEnter={() => {
+          isInteracting.current = true;
+        }}
+        onMouseLeave={() => {
+          isInteracting.current = false;
+          isDragging.current = false;
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       >
         <div
-          className="flex w-max items-center gap-16 px-6 sm:gap-20 [animation-play-state:running] group-hover:[animation-play-state:paused]"
+          ref={scrollRef}
+          className="flex w-full items-center gap-14 overflow-x-auto px-6 py-2 sm:gap-20 [&::-webkit-scrollbar]:hidden"
           style={{
-            animation: `${animationName} ${durations[speed]} linear infinite`,
-            willChange: 'transform',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {looped.map((sponsor, index) => {
@@ -84,7 +139,7 @@ export default function SponsorMarquee({
               <img
                 src={sponsor.logo}
                 alt={sponsor.name}
-                className={`h-6 md:h-9 w-auto object-contain transition-all duration-300 ${
+                className={`h-6 md:h-9 w-auto max-w-none object-contain transition-all duration-300 pointer-events-none ${
                   grayscale
                     ? 'grayscale opacity-60 hover:grayscale-0 hover:opacity-100'
                     : ''
@@ -94,13 +149,23 @@ export default function SponsorMarquee({
             );
 
             return (
-              <div key={`${sponsor.name}-${index}`} className="flex-shrink-0">
+              <div
+                key={`${sponsor.name}-${index}`}
+                className="flex-shrink-0 flex items-center justify-center min-w-[90px] sm:min-w-[120px]"
+              >
                 {sponsor.href ? (
                   <a
                     href={sponsor.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={sponsor.name}
+                    className="block"
+                    onClick={(e) => {
+                      // Prevent navigating if dragged
+                      if (Math.abs(scrollRef.current.scrollLeft - scrollLeftStart.current) > 5) {
+                        e.preventDefault();
+                      }
+                    }}
                   >
                     {img}
                   </a>

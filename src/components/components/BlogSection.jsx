@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -49,6 +49,9 @@ export default function BlogSection({
   const [sortBy, setSortBy] = useState("date-desc");
   const [timeRange, setTimeRange] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const galleryTouchStartX = useRef(null);
+  const galleryTouchStartY = useRef(null);
 
   // Sync modal state with URL hash
   useEffect(() => {
@@ -517,11 +520,56 @@ export default function BlogSection({
 
                 {/* Primary Featured Display */}
                 {activeGalleryImage && (
-                  <div className="mt-6 overflow-hidden rounded-2xl bg-gray-100">
+                  <div
+                    className="mt-6 overflow-hidden rounded-2xl bg-gray-100 select-none cursor-grab active:cursor-grabbing"
+                    onTouchStart={(e) => {
+                      galleryTouchStartX.current = e.touches[0].clientX;
+                      galleryTouchStartY.current = e.touches[0].clientY;
+                    }}
+                    onTouchEnd={(e) => {
+                      if (
+                        galleryTouchStartX.current === null ||
+                        galleryTouchStartY.current === null ||
+                        currentGallery.length <= 1
+                      )
+                        return;
+
+                      const diffX =
+                        e.changedTouches[0].clientX -
+                        galleryTouchStartX.current;
+                      const diffY =
+                        e.changedTouches[0].clientY -
+                        galleryTouchStartY.current;
+
+                      if (
+                        Math.abs(diffX) > Math.abs(diffY) &&
+                        Math.abs(diffX) > 35
+                      ) {
+                        const currentIdx = currentGallery.findIndex(
+                          (img) => img === activeGalleryImage,
+                        );
+                        if (diffX < 0) {
+                          // Swipe left -> next image
+                          const nextIdx =
+                            (currentIdx + 1) % currentGallery.length;
+                          setActiveGalleryImage(currentGallery[nextIdx]);
+                        } else {
+                          // Swipe right -> prev image
+                          const prevIdx =
+                            (currentIdx - 1 + currentGallery.length) %
+                            currentGallery.length;
+                          setActiveGalleryImage(currentGallery[prevIdx]);
+                        }
+                      }
+                      galleryTouchStartX.current = null;
+                      galleryTouchStartY.current = null;
+                    }}
+                  >
                     <img
                       src={activeGalleryImage}
                       alt={activePost.title}
-                      className="aspect-video w-full object-cover transition-all duration-300"
+                      className="aspect-video w-full object-cover transition-all duration-300 pointer-events-none"
+                      draggable={false}
                     />
                   </div>
                 )}

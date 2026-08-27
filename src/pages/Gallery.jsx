@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,8 +8,10 @@ import {
 } from "lucide-react";
 import fallbackLogo from "../assets/images/isqdf_logo.png";
 import PageBanner from "../components/components/Banner";
-import { galleryItems, galleryBanner } from "../data/galleryData";
-
+import { galleryBanner } from "../data/galleryData";
+import { blogPosts } from "../data/blog";
+import Button from "../components/ui/Button";
+import DynamicIcon from "../components/ui/Dynamicicon";
 const ITEMS_PER_PAGE = 6;
 
 const SORT_OPTIONS = [
@@ -56,10 +58,10 @@ function Gallery() {
   const filteredAndSortedItems = useMemo(() => {
     const trimmed = searchQuery.trim().toLowerCase();
     const filtered = trimmed
-      ? galleryItems.filter((item) =>
-          item.title?.toLowerCase().includes(trimmed),
-        )
-      : galleryItems;
+      ? blogPosts.data.filter((item) =>
+        item.title?.toLowerCase().includes(trimmed),
+      )
+      : blogPosts.data;
     return sortItems(filtered, sortKey);
   }, [searchQuery, sortKey]);
 
@@ -170,11 +172,10 @@ function Gallery() {
                           setSortKey(option.key);
                           setSortMenuOpen(false);
                         }}
-                        className={`block w-full px-4 py-2.5 text-left text-sm transition-colors ${
-                          option.key === sortKey
-                            ? "bg-red-600 text-white"
-                            : "text-gray-700 hover:bg-red-50"
-                        }`}
+                        className={`block w-full px-4 py-2.5 text-left text-sm transition-colors ${option.key === sortKey
+                          ? "bg-red-600 text-white"
+                          : "text-gray-700 hover:bg-red-50"
+                          }`}
                       >
                         {option.label}
                       </button>
@@ -235,11 +236,10 @@ function Gallery() {
                   onClick={() => setPage(i)}
                   aria-label={`Go to page ${i + 1}`}
                   aria-current={i === page}
-                  className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-sm font-semibold transition-all ${
-                    i === page
-                      ? "bg-red-600 text-white"
-                      : "bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-red-50 hover:text-red-600"
-                  }`}
+                  className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-sm font-semibold transition-all ${i === page
+                    ? "bg-red-600 text-white"
+                    : "bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-red-50 hover:text-red-600"
+                    }`}
                 >
                   {i + 1}
                 </button>
@@ -308,9 +308,8 @@ function GalleryCard({ item, onClick }) {
               src={fallbackLogo}
               alt=""
               aria-hidden="true"
-              className={`h-10 w-10 object-contain opacity-40 ${
-                !failed ? "animate-pulse" : ""
-              }`}
+              className={`h-10 w-10 object-contain opacity-40 ${!failed ? "animate-pulse" : ""
+                }`}
             />
           </div>
         )}
@@ -322,9 +321,8 @@ function GalleryCard({ item, onClick }) {
             loading="lazy"
             onLoad={() => setLoaded(true)}
             onError={() => setFailed(true)}
-            className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-              loaded ? "opacity-100" : "opacity-0"
-            }`}
+            className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${loaded ? "opacity-100" : "opacity-0"
+              }`}
           />
         )}
 
@@ -376,10 +374,36 @@ function Lightbox({ items, index, onClose, onNavigate }) {
   const goPrev = () => onNavigate((index - 1 + total) % total);
   const goNext = () => onNavigate((index + 1) % total);
 
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+    const diffY = e.changedTouches[0].clientY - touchStartY.current;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35 && total > 1) {
+      if (diffX < 0) {
+        goNext();
+      } else {
+        goPrev();
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-sm select-none"
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div
         className="flex items-center justify-between px-4 py-4 sm:px-6"
@@ -415,9 +439,8 @@ function Lightbox({ items, index, onClose, onNavigate }) {
           src={item.image}
           alt={item.title}
           onLoad={() => setLoaded(true)}
-          className={`max-h-full max-w-full rounded-xl object-contain transition-opacity duration-300 ${
-            loaded ? "opacity-100" : "opacity-0"
-          }`}
+          className={`max-h-full max-w-full rounded-xl object-contain transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"
+            }`}
         />
 
         {total > 1 && (
@@ -452,6 +475,12 @@ function Lightbox({ items, index, onClose, onNavigate }) {
           </p>
         )}
         <h3 className="mt-1 text-lg font-bold text-white">{item.title}</h3>
+        <Button
+          as="a"
+          href={`/blog#${item.id}`}
+          rightIcon={<DynamicIcon name="Image" className="w-full h-full" />}
+          size="sm"
+        >View on Blog</Button>
       </div>
     </div>
   );
