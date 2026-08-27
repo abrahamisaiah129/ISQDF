@@ -201,7 +201,7 @@
     font-family: var(--font-sans);
     font-weight: 700;
     letter-spacing: -0.02em;
-    color: #111827; /* gray-900 */
+    color: inherit;
     line-height: 1.25;
   }
 

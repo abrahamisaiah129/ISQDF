@@ -14,7 +14,7 @@ const Contact = () => {
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-red-100">
             {header.eyebrow}
           </p>
-          <h1 className="mt-4 max-w-2xl text-4xl font-bold sm:text-5xl">
+          <h1 className="mt-4 max-w-2xl text-4xl font-bold text-white sm:text-5xl">
             {header.heading}
           </h1>
           <p className="mt-6 max-w-xl leading-8 text-red-100">

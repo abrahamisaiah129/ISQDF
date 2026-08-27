@@ -5,6 +5,7 @@ import {
   X,
   ArrowUpDown,
   Search,
+  BookOpen,
 } from "lucide-react";
 import fallbackLogo from "../assets/images/isqdf_logo.png";
 import PageBanner from "../components/components/Banner";
@@ -345,14 +346,38 @@ function GalleryCard({ item, onClick }) {
 function Lightbox({ items, index, onClose, onNavigate }) {
   const total = items.length;
   const item = items[index];
-  const [loaded, setLoaded] = useState(false);
-  const [loadedForIndex, setLoadedForIndex] = useState(index);
 
-  // Render-time state adjustment when lightbox image index changes
-  if (index !== loadedForIndex) {
-    setLoadedForIndex(index);
+  // Resolve array of gallery photos for the selected item
+  const galleryPhotos = useMemo(() => {
+    if (!item) return [];
+    if (Array.isArray(item.gallery) && item.gallery.length > 0) {
+      return item.gallery;
+    }
+    if (Array.isArray(item.images) && item.images.length > 0) {
+      return item.images;
+    }
+    return item.image ? [item.image] : [];
+  }, [item]);
+
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [prevTrackKey, setPrevTrackKey] = useState(`${index}-0`);
+
+  const currentTrackKey = `${index}-${photoIndex}`;
+  if (currentTrackKey !== prevTrackKey) {
+    setPrevTrackKey(currentTrackKey);
     setLoaded(false);
   }
+
+  // Reset photo index when selected story item changes
+  const prevIndexRef = useRef(index);
+  if (prevIndexRef.current !== index) {
+    prevIndexRef.current = index;
+    setPhotoIndex(0);
+  }
+
+  const activePhoto = galleryPhotos[photoIndex] || item.image;
+  const hasMultiplePhotos = galleryPhotos.length > 1;
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -361,18 +386,39 @@ function Lightbox({ items, index, onClose, onNavigate }) {
     };
   }, []);
 
+  const goNextPhoto = () => {
+    if (hasMultiplePhotos) {
+      setPhotoIndex((p) => (p + 1) % galleryPhotos.length);
+    } else {
+      onNavigate((index + 1) % total);
+    }
+  };
+
+  const goPrevPhoto = () => {
+    if (hasMultiplePhotos) {
+      setPhotoIndex((p) => (p - 1 + galleryPhotos.length) % galleryPhotos.length);
+    } else {
+      onNavigate((index - 1 + total) % total);
+    }
+  };
+
+  const goNextPost = () => {
+    onNavigate((index + 1) % total);
+  };
+
+  const goPrevPost = () => {
+    onNavigate((index - 1 + total) % total);
+  };
+
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight") onNavigate((index + 1) % total);
-      if (e.key === "ArrowLeft") onNavigate((index - 1 + total) % total);
+      if (e.key === "ArrowRight") goNextPhoto();
+      if (e.key === "ArrowLeft") goPrevPhoto();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [index, total, onClose, onNavigate]);
-
-  const goPrev = () => onNavigate((index - 1 + total) % total);
-  const goNext = () => onNavigate((index + 1) % total);
+  }, [hasMultiplePhotos, galleryPhotos.length, index, total, onClose, onNavigate]);
 
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
@@ -387,11 +433,11 @@ function Lightbox({ items, index, onClose, onNavigate }) {
     const diffX = e.changedTouches[0].clientX - touchStartX.current;
     const diffY = e.changedTouches[0].clientY - touchStartY.current;
 
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35 && total > 1) {
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
       if (diffX < 0) {
-        goNext();
+        goNextPhoto();
       } else {
-        goPrev();
+        goPrevPhoto();
       }
     }
     touchStartX.current = null;
@@ -400,30 +446,65 @@ function Lightbox({ items, index, onClose, onNavigate }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-sm select-none"
+      className="fixed inset-0 z-50 flex flex-col justify-between bg-black/95 backdrop-blur-md select-none overflow-hidden"
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Top Bar: Counter & Quick Navigation */}
       <div
-        className="flex items-center justify-between px-4 py-4 sm:px-6"
+        className="flex-shrink-0 flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 z-10"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="text-sm font-medium text-white/70">
-          {index + 1} / {total}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-        >
-          <X size={18} />
-        </button>
+        <div className="flex items-center gap-3">
+          <span className="text-xs sm:text-sm font-medium text-white/70">
+            {index + 1} / {total}
+          </span>
+          {hasMultiplePhotos && (
+            <span className="rounded-full bg-red-600/80 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+              Photo {photoIndex + 1} of {galleryPhotos.length}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {total > 1 && (
+            <div className="hidden sm:flex items-center gap-1.5 mr-2">
+              <button
+                type="button"
+                onClick={goPrevPost}
+                title="Previous story"
+                aria-label="Previous story"
+                className="flex h-8 px-2.5 items-center gap-1 rounded-full bg-white/10 text-xs font-medium text-white/80 hover:bg-white/20 transition cursor-pointer"
+              >
+                <ChevronLeft size={14} /> Prev Story
+              </button>
+              <button
+                type="button"
+                onClick={goNextPost}
+                title="Next story"
+                aria-label="Next story"
+                className="flex h-8 px-2.5 items-center gap-1 rounded-full bg-white/10 text-xs font-medium text-white/80 hover:bg-white/20 transition cursor-pointer"
+              >
+                Next Story <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close lightbox"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
+      {/* Main Image Container */}
       <div
-        className="relative flex flex-1 items-center justify-center px-4 pb-4 sm:px-16"
+        className="relative flex flex-1 min-h-0 w-full items-center justify-center overflow-hidden px-4 py-2 sm:px-16"
         onClick={(e) => e.stopPropagation()}
       >
         {!loaded && (
@@ -436,28 +517,30 @@ function Lightbox({ items, index, onClose, onNavigate }) {
         )}
 
         <img
-          src={item.image}
-          alt={item.title}
+          src={activePhoto}
+          alt={`${item.title} — photo ${photoIndex + 1}`}
           onLoad={() => setLoaded(true)}
-          className={`max-h-full max-w-full rounded-xl object-contain transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"
-            }`}
+          className={`max-h-full max-w-full rounded-xl object-contain transition-opacity duration-300 pointer-events-none shadow-2xl ${
+            loaded ? "opacity-100" : "opacity-0"
+          }`}
+          draggable={false}
         />
 
-        {total > 1 && (
+        {(hasMultiplePhotos || total > 1) && (
           <>
             <button
               type="button"
-              onClick={goPrev}
-              aria-label="Previous image"
-              className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:left-4"
+              onClick={goPrevPhoto}
+              aria-label={hasMultiplePhotos ? "Previous photo in gallery" : "Previous image"}
+              className="absolute left-2 top-1/2 flex h-10 w-10 sm:h-11 sm:w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white shadow-md backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-105 sm:left-4 cursor-pointer"
             >
               <ChevronLeft size={22} />
             </button>
             <button
               type="button"
-              onClick={goNext}
-              aria-label="Next image"
-              className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:right-4"
+              onClick={goNextPhoto}
+              aria-label={hasMultiplePhotos ? "Next photo in gallery" : "Next image"}
+              className="absolute right-2 top-1/2 flex h-10 w-10 sm:h-11 sm:w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white shadow-md backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-105 sm:right-4 cursor-pointer"
             >
               <ChevronRight size={22} />
             </button>
@@ -465,22 +548,55 @@ function Lightbox({ items, index, onClose, onNavigate }) {
         )}
       </div>
 
+      {/* Bottom Footer: Thumbnails (if array > 1), Title & View on Blog Button */}
       <div
-        className="px-6 pb-8 text-center"
+        className="flex-shrink-0 px-4 pt-2 pb-5 sm:px-6 sm:pb-7 text-center z-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Photo Array Thumbnail Strip */}
+        {hasMultiplePhotos && (
+          <div className="mb-3 flex items-center justify-center gap-2 overflow-x-auto py-1 px-2">
+            {galleryPhotos.map((photo, pIdx) => (
+              <button
+                key={pIdx}
+                type="button"
+                onClick={() => setPhotoIndex(pIdx)}
+                aria-label={`View photo ${pIdx + 1} of ${galleryPhotos.length}`}
+                className={`relative h-12 w-14 sm:h-14 sm:w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all cursor-pointer ${
+                  photoIndex === pIdx
+                    ? "border-red-600 scale-105 shadow-md ring-1 ring-red-500/50"
+                    : "border-white/20 opacity-50 hover:opacity-100 hover:border-white/60"
+                }`}
+              >
+                <img
+                  src={photo}
+                  alt={`Thumbnail ${pIdx + 1}`}
+                  className="h-full w-full object-cover pointer-events-none"
+                  draggable={false}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
         {item.date && (
           <p className="text-xs font-medium uppercase tracking-wide text-white/60">
             {formatDate(item.date)}
           </p>
         )}
-        <h3 className="mt-1 text-lg font-bold text-white">{item.title}</h3>
-        <Button
-          as="a"
-          href={`/blog#${item.id}`}
-          rightIcon={<DynamicIcon name="Image" className="w-full h-full" />}
-          size="sm"
-        >View on Blog</Button>
+        <h3 className="mt-1 text-base sm:text-lg font-bold text-white max-w-2xl mx-auto truncate sm:whitespace-normal">
+          {item.title}
+        </h3>
+        <div className="mt-2.5 flex justify-center">
+          <Button
+            as="a"
+            href={`/blog#${item.id}`}
+            rightIcon={<DynamicIcon name="BookOpen" className="w-full h-full" />}
+            size="sm"
+          >
+            View on Blog
+          </Button>
+        </div>
       </div>
     </div>
   );
