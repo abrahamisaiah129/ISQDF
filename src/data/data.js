@@ -132,7 +132,7 @@ import { sponsors, sponsorMarqueeData } from './sponsors';
 import { galleryItems, galleryBanner, galleryPageData } from './galleryData';
 import { blogPosts, blogBanner } from './blog';
 import { comments } from './comments';
-import { founderData } from './founderData';
+import { founderData, leaders } from './founderData';
 import { storyData } from './storyData';
 import { donationData } from './donationData';
 import { contactData } from './contactData';
@@ -156,6 +156,7 @@ export {
   blogBanner,
   comments,
   founderData,
+  leaders,
   storyData,
   donationData,
   contactData,
@@ -180,6 +181,7 @@ export const siteData = {
   },
   about: aboutPageData,
   founder: founderData,
+  leaders: leaders,
   story: founderData,
   programs: programsData,
   gallery: galleryPageData,
