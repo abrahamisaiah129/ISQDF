@@ -15,10 +15,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout.jsx";
 import About from "./pages/About.jsx";
 import Founder from "./pages/Founder.jsx";
-// import Programs from "./pages/Founder.jsx";
 import Donate from "./pages/Donate.jsx";
 import Gallery from "./pages/Gallery.jsx";
 import Blog from "./pages/Blog.jsx";
+import { initAnalytics } from "./lib/analytics";
+
+initAnalytics();
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>

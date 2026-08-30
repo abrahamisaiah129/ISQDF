@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LockKeyhole, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import Button from '../ui/Button';
 import { initializePaystackPayment } from '../../lib/paystack';
+import { trackEvent } from '../../lib/analytics';
 
 /**
  * DonationForm — handles donor contact information, targeted program selection,
@@ -58,6 +59,7 @@ export default function DonationForm({
     }
 
     setIsLoading(true);
+    trackEvent("Donation", "started", `program_${program}`, numericAmount);
 
     try {
       await initializePaystackPayment({
@@ -68,6 +70,7 @@ export default function DonationForm({
         program: getSelectedProgramName(),
         onSuccess: (transaction) => {
           setIsLoading(false);
+          trackEvent("Donation", "completed", `amount_${numericAmount}`, numericAmount);
           setPaymentSuccess({
             reference: transaction.reference || transaction.trxref || `ISQDF-${Date.now()}`,
             amount: numericAmount,
@@ -83,6 +86,7 @@ export default function DonationForm({
         },
         onClose: () => {
           setIsLoading(false);
+          trackEvent("Donation", "cancelled", `program_${program}`);
         },
       });
     } catch (err) {

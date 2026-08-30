@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { FaFacebookF, FaWhatsapp, FaXTwitter } from "react-icons/fa6";
+import AdUnit from "../AdUnit";
 
 function formatDate(date) {
   if (!date) return "";
@@ -33,6 +34,8 @@ export default function BlogSection({
   eyebrow: customEyebrow,
   title: customTitle,
   subtitle: customSubtitle,
+  showAd = false,
+  adSlot = import.meta.env.VITE_ADSENSE_BLOG_SLOT || "1234567890",
 }) {
   const postList = Array.isArray(posts) ? posts : posts?.data || [];
   const details =
@@ -408,6 +411,13 @@ export default function BlogSection({
           >
             Clear all filters
           </button>
+        </div>
+      )}
+
+      {/* AdSense Unit (Low-friction content zone) */}
+      {showAd && adSlot && (
+        <div className="my-8 flex justify-center overflow-hidden">
+          <AdUnit slot={adSlot} className="w-full max-w-4xl" />
         </div>
       )}
 
